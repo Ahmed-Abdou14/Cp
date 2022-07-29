@@ -1,0 +1,1 @@
+{"name":"Local: B706","url":"/home/ahmed/Github/Cp/codeforces/B706.py","tests":[{"id":1659118370039,"input":"5\n3 10 8 6 11\n4\n1\n10\n3\n11","output":"0\n4\n1\n5"}],"interactive":false,"memoryLimit":1024,"timeLimit":3000,"srcPath":"/home/ahmed/Github/Cp/codeforces/B706.py","group":"local","local":true}
