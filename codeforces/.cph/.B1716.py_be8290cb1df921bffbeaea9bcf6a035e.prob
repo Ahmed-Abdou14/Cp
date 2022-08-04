@@ -1,0 +1,1 @@
+{"name":"Local: B1716","url":"/home/ahmed/Documents/Cp/codeforces/B1716.py","tests":[{"id":1659625955280,"input":"2\n2\n3","output":"2\n1 2\n2 1\n3\n1 2 3\n3 2 1\n3 1 2"}],"interactive":false,"memoryLimit":1024,"timeLimit":3000,"srcPath":"/home/ahmed/Documents/Cp/codeforces/B1716.py","group":"local","local":true}
