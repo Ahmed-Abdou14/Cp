@@ -1,0 +1,1 @@
+{"name":"Local: 01712","url":"/home/ahmed/Projects/Cp/codeforces/01712.py","tests":[{"id":1660401731192,"input":"4\n3 1\n2 3 1\n3 3\n1 2 3\n4 2\n3 4 1 2\n1 1\n1","output":"1\n0\n2\n0"}],"interactive":false,"memoryLimit":1024,"timeLimit":3000,"srcPath":"/home/ahmed/Projects/Cp/codeforces/01712.py","group":"local","local":true}
