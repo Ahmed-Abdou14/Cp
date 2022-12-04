@@ -1,151 +1,85 @@
-from heapq import heappop, heappush
+from functools import wraps
+import math
+import time
 
-from shapely.errors import TopologicalError
-from shapely.geometry import LineString, Point
+def timeit(func):
+    @wraps(func)
+    async def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = await func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        print(f'def {func.__name__}{args} --> {total_time:.4f}s', flush=True)
+        return result
+    return timeit_wrapper
 
-""" 
+def mask1(s1: str, s2: str, mask: chr) -> str:
+    arr = list(s2)
+    for i, c1 in enumerate(s1):
+        if c1 == mask:
+            arr[i] = c1
+    return "".join(arr)
 
-This code has been made by
-https://github.com/shapely/shapely/blob/main/shapely/algorithms/polylabel.py
-
-Which aims to get the center / point of inaccessability of a non uniform polygon
-https://blog.mapbox.com/a-new-algorithm-for-finding-a-visual-center-of-a-polygon-7c77e6492fbc
-
-"""
-
-
-class Cell:
-    """A `Cell`'s centroid property is a potential solution to finding the pole
-    of inaccessibility for a given polygon. Rich comparison operators are used
-    for sorting `Cell` objects in a priority queue based on the potential
-    maximum distance of any theoretical point within a cell to a given
-    polygon's exterior boundary.
-    """
-
-    def __init__(self, x, y, h, polygon):
-        self.x = x
-        self.y = y
-        self.h = h  # half of cell size
-        self.centroid = Point(x, y)  # cell centroid, potential solution
-
-        # distance from cell centroid to polygon exterior
-        self.distance = self._dist(polygon)
-
-        # max distance to polygon exterior within a cell
-        self.max_distance = self.distance + h * 1.4142135623730951  # sqrt(2)
-
-    # rich comparison operators for sorting in minimum priority queue
-    def __lt__(self, other):
-        return self.max_distance > other.max_distance
-
-    def __le__(self, other):
-        return self.max_distance >= other.max_distance
-
-    def __eq__(self, other):
-        return self.max_distance == other.max_distance
-
-    def __ne__(self, other):
-        return self.max_distance != other.max_distance
-
-    def __gt__(self, other):
-        return self.max_distance < other.max_distance
-
-    def __ge__(self, other):
-        return self.max_distance <= other.max_distance
-
-    def _dist(self, polygon):
-        """Signed distance from Cell centroid to polygon outline. The returned
-        value is negative if the point is outside of the polygon exterior
-        boundary.
-        """
-        inside = polygon.contains(self.centroid)
-        distance = self.centroid.distance(polygon.exterior)
-        for interior in polygon.interiors:
-            distance = min(distance, self.centroid.distance(interior))
-        if inside:
-            return distance
-        return -distance
+def mask2(s1: str, s2: str, mask: chr) -> str:
+    return "".join([c2 if c1 != mask else c1 for c1, c2 in zip(s1, s2)])
 
 
-def polylabel(polygon, tolerance=1.0):
-    """Finds pole of inaccessibility for a given polygon. Based on
-    Vladimir Agafonkin's https://github.com/mapbox/polylabel
-    Parameters
-    ----------
-    polygon : shapely.geometry.Polygon
-    tolerance : int or float, optional
-                `tolerance` represents the highest resolution in units of the
-                input geometry that will be considered for a solution. (default
-                value is 1.0).
-    Returns
-    -------
-    shapely.geometry.Point
-        A point representing the pole of inaccessibility for the given input
-        polygon.
-    Raises
-    ------
-    shapely.errors.TopologicalError
-        If the input polygon is not a valid geometry.
-    Example
-    -------
-    >>> from shapely import LineString
-    >>> polygon = LineString([(0, 0), (50, 200), (100, 100), (20, 50),
-    ... (-100, -20), (-150, -200)]).buffer(100)
-    >>> polylabel(polygon, tolerance=10).wkt
-    'POINT (59.35615556364569 121.83919629746435)'
-    """
-    if not polygon.is_valid:
-        raise TopologicalError("Invalid polygon")
-    minx, miny, maxx, maxy = polygon.bounds
-    width = maxx - minx
-    height = maxy - miny
-    cell_size = min(width, height)
-    h = cell_size / 2.0
-    cell_queue = []
+def mask3(s1: str, s2: str, mask: chr) -> str:
+    s3 = ""
+    for c1, c2 in zip(s1, s2):
+        if c1 == mask:
+            s3 += c1
+        else:
+            s3 += c2
+            
+    return s3
 
-    # First best cell approximation is one constructed from the centroid
-    # of the polygon
-    x, y = polygon.centroid.coords[0]
-    best_cell = Cell(x, y, 0, polygon)
+import random
 
-    # Special case for rectangular polygons avoiding floating point error
-    bbox_cell = Cell(minx + width / 2.0, miny + height / 2, 0, polygon)
-    if bbox_cell.distance > best_cell.distance:
-        best_cell = bbox_cell
+loop = 100
 
-    # build a regular square grid covering the polygon
-    x = minx
-    while x < maxx:
-        y = miny
-        while y < maxy:
-            heappush(cell_queue, Cell(x + h, y + h, h, polygon))
-            y += cell_size
-        x += cell_size
+time_for_mask1 = 0
+time_for_mask2 = 0
+time_for_mask3 = 0
 
-    # minimum priority queue
-    while cell_queue:
-        cell = heappop(cell_queue)
+for i in range(loop):
 
-        # update the best cell if we find a better one
-        if cell.distance > best_cell.distance:
-            best_cell = cell
+    print(i)
+    
+    size = random.randint(10000, 1000000)
+    s1 = "".join([chr(random.randint(97, 122)) for i in range(size)])
+    s2 = "".join([chr(random.randint(97, 122)) for i in range(size)])
+    mask = chr(random.randint(97, 122))
+    
+    start_time = time.perf_counter()
+    mask1(s1, s2, mask)
+    end_time = time.perf_counter()
+    time_for_mask1 += end_time-start_time
 
-        # continue to the next iteration if we can't find a better solution
-        # based on tolerance
-        if cell.max_distance - best_cell.distance <= tolerance:
-            continue
+    start_time = time.perf_counter()
+    mask2(s1, s2, mask)
+    end_time = time.perf_counter()
+    time_for_mask2 += end_time-start_time
 
-        # split the cell into quadrants
-        h = cell.h / 2.0
-        heappush(cell_queue, Cell(cell.x - h, cell.y - h, h, polygon))
-        heappush(cell_queue, Cell(cell.x + h, cell.y - h, h, polygon))
-        heappush(cell_queue, Cell(cell.x - h, cell.y + h, h, polygon))
-        heappush(cell_queue, Cell(cell.x + h, cell.y + h, h, polygon))
+    start_time = time.perf_counter()
+    mask3(s1, s2, mask)
+    end_time = time.perf_counter()
+    time_for_mask3 += end_time-start_time
+    
+    
+avg_time_mask1 = time_for_mask1/loop
+avg_time_mask2 = time_for_mask2/loop
+avg_time_mask3 = time_for_mask3/loop
 
-    return best_cell.centroid
+def percent(n1, n2):
+    maxx = max(n1, n2)
+    minn = min(n1, n2)
+    return maxx*100/minn
+    diff = maxx-minn
+    
 
-
-polygon = LineString([(0, 0), (50, 50), (100, 0)]).buffer(50)
-print(polylabel(polygon, tolerance=1).wkt)
-
-fit = NonlinearModelFit[data, Norm[{x, y} - {x0, y0}], {x0, y0}, {x, y}, Weights -> 1/observations ^ 2]
+print(f"""
+    time for task 1: {avg_time_mask1}
+    time for task 2: {avg_time_mask2}
+    time for task 3: {avg_time_mask3}
+""")
